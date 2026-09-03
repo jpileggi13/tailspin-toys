@@ -55,6 +55,44 @@ export async function getAllGameIds(db: Database): Promise<number[]> {
 - Map raw rows to the app-facing `Game`/`Publisher`/`Category` types in one place; don't leak Drizzle row shapes into components.
 - Keep ordering/lookup logic in `games.ts`, not in pages.
 
+## Documenting Exported Functions
+
+Every exported function in `db/` and `src/lib/` must have a TSDoc/JSDoc block comment
+directly above it with:
+
+- A one-sentence (or short paragraph) description of what it returns/does.
+- An `@param` tag for **every** parameter, including the injectable `db` argument —
+  document it as the Drizzle client (call out that it's injectable so tests can pass an
+  in-memory instance).
+- An `@returns` tag describing the return value (what a `null`/empty result means, if
+  applicable).
+
+Don't repeat the TypeScript type in prose — the signature already has it. Describe what
+the value *means*.
+
+```ts
+/**
+ * A single game by id, or null when it does not exist.
+ *
+ * @param db Drizzle database client (injectable so tests can pass an in-memory instance).
+ * @param id Game id to look up.
+ * @returns The matching game with its relations, or `null` if no game has that id.
+ */
+export async function getGameById(db: Database, id: number): Promise<Game | null> {
+  // ...
+}
+```
+
+Non-exported helpers (e.g. `mapGame`, `baseGamesQuery`) don't require a doc comment
+unless their behavior is genuinely non-obvious — see
+[`coding-standards.instructions.md`](coding-standards.instructions.md) for the general
+comment philosophy.
+
+> [!NOTE]
+> This is enforced by ESLint (`eslint-plugin-jsdoc`'s `require-jsdoc`, `require-param`,
+> and `require-returns` rules) scoped to `db/**/*.ts` and `src/lib/*.ts` (excluding
+> `*.test.ts`) in `eslint.config.js`. Run `npm run lint` to check.
+
 ## Determinism
 
 Seed-derived values must be reproducible across builds. Derive star ratings from a stable hash of the title (`ratingFromTitle`) — **never** `Math.random()`.
