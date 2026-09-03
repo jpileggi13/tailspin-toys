@@ -1,0 +1,146 @@
+---
+import type { Category, Publisher } from '../types/game';
+
+interface Props {
+    /** Categories to render as filter checkboxes, typically all categories in the catalog. */
+    categories: Category[];
+    /** Publishers to render as filter checkboxes, typically all publishers in the catalog. */
+    publishers: Publisher[];
+    /** Total number of games in the (unfiltered) list, for the initial status text. */
+    totalGames: number;
+}
+
+const { categories, publishers, totalGames } = Astro.props;
+
+const checkboxClasses =
+    'h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:outline-none';
+const labelClasses = 'inline-flex items-center gap-2 text-sm text-slate-300 cursor-pointer';
+---
+
+<div
+    data-testid="game-filters"
+    class="mb-8 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-6"
+>
+    <div class="flex flex-wrap gap-x-10 gap-y-6">
+        <fieldset>
+            <legend class="text-sm font-semibold text-slate-200 mb-3">Category</legend>
+            <div class="flex flex-wrap gap-x-4 gap-y-2">
+                {categories.map((category) => (
+                    <label class={labelClasses}>
+                        <input
+                            type="checkbox"
+                            value={category.id}
+                            class:list={['category-filter-checkbox', checkboxClasses]}
+                            data-testid={`category-filter-${category.id}`}
+                        />
+                        {category.name}
+                    </label>
+                ))}
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend class="text-sm font-semibold text-slate-200 mb-3">Publisher</legend>
+            <div class="flex flex-wrap gap-x-4 gap-y-2">
+                {publishers.map((publisher) => (
+                    <label class={labelClasses}>
+                        <input
+                            type="checkbox"
+                            value={publisher.id}
+                            class:list={['publisher-filter-checkbox', checkboxClasses]}
+                            data-testid={`publisher-filter-${publisher.id}`}
+                        />
+                        {publisher.name}
+                    </label>
+                ))}
+            </div>
+        </fieldset>
+
+        <div class="flex items-end">
+            <button
+                type="button"
+                id="clear-filters-button"
+                data-testid="clear-filters-button"
+                class="text-sm font-medium text-blue-400 hover:text-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors"
+            >
+                Clear filters
+            </button>
+        </div>
+    </div>
+
+    <p
+        role="status"
+        aria-live="polite"
+        data-testid="filter-status"
+        class="mt-4 text-sm text-slate-400"
+    >
+        Showing all {totalGames} games.
+    </p>
+</div>
+
+<script>
+    // No client-side UI framework: filtering toggles pre-rendered GameCard visibility
+    // by matching checked category/publisher checkbox values against each card's
+    // data-category-id/data-publisher-id attributes.
+    const categoryCheckboxes = document.querySelectorAll<HTMLInputElement>(
+        '.category-filter-checkbox',
+    );
+    const publisherCheckboxes = document.querySelectorAll<HTMLInputElement>(
+        '.publisher-filter-checkbox',
+    );
+    const clearButton = document.getElementById('clear-filters-button');
+    const statusElement = document.querySelector<HTMLElement>('[data-testid="filter-status"]');
+    const noResultsElement = document.querySelector<HTMLElement>(
+        '[data-testid="no-filtered-results"]',
+    );
+    const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="game-card"]'));
+
+    function selectedValues(checkboxes: NodeListOf<HTMLInputElement>): string[] {
+        return Array.from(checkboxes)
+            .filter((checkbox) => checkbox.checked)
+            .map((checkbox) => checkbox.value);
+    }
+
+    function applyFilters(): void {
+        const selectedCategories = selectedValues(categoryCheckboxes);
+        const selectedPublishers = selectedValues(publisherCheckboxes);
+
+        let visibleCount = 0;
+        for (const card of cards) {
+            const matchesCategory =
+                selectedCategories.length === 0 ||
+                selectedCategories.includes(card.dataset.categoryId ?? '');
+            const matchesPublisher =
+                selectedPublishers.length === 0 ||
+                selectedPublishers.includes(card.dataset.publisherId ?? '');
+            const visible = matchesCategory && matchesPublisher;
+            card.hidden = !visible;
+            if (visible) {
+                visibleCount += 1;
+            }
+        }
+
+        if (noResultsElement) {
+            noResultsElement.hidden = visibleCount > 0;
+        }
+        if (statusElement) {
+            statusElement.textContent =
+                visibleCount === cards.length
+                    ? `Showing all ${cards.length} games.`
+                    : `Showing ${visibleCount} of ${cards.length} games.`;
+        }
+    }
+
+    for (const checkbox of [...categoryCheckboxes, ...publisherCheckboxes]) {
+        checkbox.addEventListener('change', applyFilters);
+    }
+
+    clearButton?.addEventListener('click', () => {
+        for (const checkbox of [...categoryCheckboxes, ...publisherCheckboxes]) {
+            checkbox.checked = false;
+        }
+        applyFilters();
+    });
+
+    applyFilters();
+</script>
