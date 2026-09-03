@@ -50,19 +50,35 @@ function baseGamesQuery(db: Database) {
         .leftJoin(publishers, eq(games.publisherId, publishers.id));
 }
 
-/** All games ordered by title. */
+/**
+ * All games ordered by title.
+ *
+ * @param db Drizzle database client (injectable so tests can pass an in-memory instance).
+ * @returns All games with their category and publisher relations, ordered by title.
+ */
 export async function getAllGames(db: Database): Promise<Game[]> {
     const rows = await baseGamesQuery(db).orderBy(asc(games.title));
     return rows.map(mapGame);
 }
 
-/** All game ids ordered by title. */
+/**
+ * All game ids ordered by title.
+ *
+ * @param db Drizzle database client (injectable so tests can pass an in-memory instance).
+ * @returns All game ids, ordered by title.
+ */
 export async function getAllGameIds(db: Database): Promise<number[]> {
     const rows = await db.select({ id: games.id }).from(games).orderBy(asc(games.title));
     return rows.map((row) => row.id);
 }
 
-/** A single game by id, or null when it does not exist. */
+/**
+ * A single game by id, or null when it does not exist.
+ *
+ * @param db Drizzle database client (injectable so tests can pass an in-memory instance).
+ * @param id Game id to look up.
+ * @returns The matching game with its relations, or `null` if no game has that id.
+ */
 export async function getGameById(db: Database, id: number): Promise<Game | null> {
     const row = await baseGamesQuery(db).where(eq(games.id, id)).get();
     return row ? mapGame(row) : null;

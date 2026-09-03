@@ -114,6 +114,34 @@ There is no Svelte/React layer. When a page genuinely needs client behaviour, ad
 - Run `npx astro sync` to (re)generate route/content types before linting or type-checking
 - `.astro` files are type-checked by `npm run typecheck:astro` (which runs `astro sync` then `astro check`), on the classic `typescript` package. The pure TypeScript in `db/`, `src/lib/`, and `src/types/` is type-checked separately by `npm run typecheck` (the native TS 7 compiler, `tsgo`), which does **not** process `.astro` files.
 
+### Documenting Component `Props`
+
+Each reusable component's `Props` interface should be self-explanatory from its doc
+comments — a consumer shouldn't need to open the component body to know what a prop
+does. Add a `/** ... */` doc comment above any member whose name, type, or default
+doesn't already make its purpose obvious (e.g. a union of visual variants, or a prop
+that changes behavior rather than just content). Skip the comment only when the prop
+is genuinely self-explanatory (e.g. `title: string` on a page hero).
+
+```astro
+---
+interface Props extends Omit<HTMLAttributes<'button'>, 'type'> {
+  /** Visual style of the button. */
+  variant?: 'solid' | 'gradient';
+  /** Padding scale. */
+  size?: 'sm' | 'md';
+  /** When provided, renders an anchor (`<a>`) instead of a `<button>`. */
+  href?: string;
+}
+---
+```
+
+See `Button.astro`, `Tag.astro`, and `Card.astro` for reference examples. This is a
+documented convention, not currently enforced by ESLint (`eslint-plugin-jsdoc` doesn't
+reach into Astro frontmatter interfaces) — see
+[`coding-standards.instructions.md`](coding-standards.instructions.md) for the general
+comment philosophy.
+
 ## Best Practices
 
 - Keep data fetching in frontmatter (build time); avoid client-side fetching
